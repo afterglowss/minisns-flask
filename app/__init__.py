@@ -3,6 +3,7 @@ from flask import Flask, render_template
 from .extensions import db, login_manager, bcrypt
 from .routes.auth import auth_bp
 from .routes.profile import profile_bp
+from .routes.post import post_bp
 from dotenv import load_dotenv
 
 load_dotenv()  # .env 지원 (없어도 동작)
@@ -24,8 +25,8 @@ def create_app():
 
     # 블루프린트 등록
     app.register_blueprint(auth_bp, url_prefix="/auth")
-
     app.register_blueprint(profile_bp)
+    app.register_blueprint(post_bp)
 
     # 기본 페이지
     @app.route("/")

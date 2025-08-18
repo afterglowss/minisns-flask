@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if current_user.is_authenticated %}
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="post" action="{{ url_for('post.create') }}" enctype="multipart/form-data" class="vstack gap-2">
+      <!-- CSRF는 연습용으로 비활성화 상태 -->
+      <textarea class="form-control" name="text" rows="3" placeholder="무슨 일이 있었나요?" required></textarea>
+      <div class="d-flex align-items-center gap-2">
+        <input class="form-control" type="file" name="image" accept=".png,.jpg,.jpeg,.gif,.webp">
+        <button class="btn btn-primary">게시</button>
+      </div>
+      <div class="form-text">이미지 1장(선택) · 최대 5MB (서버 설정에 따름)</div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% for p in posts %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        {% set avatar = p.author.profile_image and url_for('static', filename=p.author.profile_image) or url_for('static', filename='img/avatar_default.png') %}
+        <img src="{{ avatar }}" width="36" height="36" class="rounded-circle border" alt="avatar">
+        <div>
+          <a class="text-decoration-none" href="{{ url_for('profile.view', username=p.author.username) }}">
+            <strong>@{{ p.author.username }}</strong>
+          </a>
+          <span class="text-muted small"> · {{ p.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+        </div>
+      </div>
+      <p class="mb-2" style="white-space: pre-wrap">{{ p.text }}</p>
+      {% if p.image_path %}
+        <img class="img-fluid rounded" src="{{ url_for('static', filename=p.image_path) }}" alt="post-image">
+      {% endif %}
+    </div>
+  </div>
+{% else %}
+  <div class="text-muted">아직 게시글이 없어요.</div>
+{% endfor %}
+
+{% endblock %}
