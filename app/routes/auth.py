@@ -59,7 +59,8 @@ def login_post():
 
     login_user(user, remember=True)
     flash("로그인 성공!", "success")
-    return redirect(url_for("index"))
+    #return redirect(url_for("index"))
+    return redirect(url_for("profile.me"))
 
 @auth_bp.post("/logout")
 @login_required
