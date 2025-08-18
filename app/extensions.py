@@ -1,0 +1,1 @@
+# db, login_manager, bcrypt 등 확장 초기화
