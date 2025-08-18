@@ -1,10 +1,11 @@
 import os, uuid
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from PIL import Image, ImageOps
 from app.extensions import db
 from app.models.post import Post
+from app.models.like import Like
 
 post_bp = Blueprint("post", __name__, template_folder="../templates/post")
 
@@ -82,3 +83,22 @@ def create():
     db.session.commit()
     flash("게시글이 등록되었습니다.", "success")
     return redirect(url_for("post.feed"))
+
+
+@post_bp.post("/api/post/<int:post_id>/like", endpoint="toggle_like_api")
+@login_required
+def toggle_like_api(post_id):
+    post = Post.query.get_or_404(post_id)
+
+    existing = Like.query.filter_by(post_id=post_id, user_id=current_user.id).first()
+    if existing:
+        db.session.delete(existing)
+        liked = False
+    else:
+        db.session.add(Like(user_id=current_user.id, post_id=post_id))
+        liked = True
+    db.session.commit()
+
+    # 최신 카운트 계산
+    count = Like.query.filter_by(post_id=post_id).count()
+    return jsonify({"ok": True, "liked": liked, "count": count, "post_id": post_id})
