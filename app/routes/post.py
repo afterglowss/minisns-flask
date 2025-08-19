@@ -6,6 +6,7 @@ from PIL import Image, ImageOps
 from app.extensions import db
 from app.models.post import Post
 from app.models.like import Like
+from app.models.comment import Comment
 
 post_bp = Blueprint("post", __name__, template_folder="../templates/post")
 
@@ -102,3 +103,56 @@ def toggle_like_api(post_id):
     # 최신 카운트 계산
     count = Like.query.filter_by(post_id=post_id).count()
     return jsonify({"ok": True, "liked": liked, "count": count, "post_id": post_id})
+
+from datetime import timezone
+from zoneinfo import ZoneInfo
+KST = ZoneInfo("Asia/Seoul")
+
+def _to_kst(dt):
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(KST)
+
+def serialize_comment(c: Comment):
+    return {
+        "id": c.id,
+        "post_id": c.post_id,
+        "author_id": c.author_id,
+        "author_username": c.author.username,
+        "author_avatar": (f"/static/{c.author.profile_image}") if c.author.profile_image else "/static/img/avatar_default.png",
+        "text": c.text,
+        "created_at": _to_kst(c.created_at).strftime("%Y-%m-%d %H:%M"),
+    }
+
+@post_bp.post("/api/post/<int:post_id>/comment", endpoint="add_comment_api")
+@login_required
+def add_comment_api(post_id):
+    post = Post.query.get_or_404(post_id)
+
+    # 어떤 경우에도 안전하게 본문에서 text를 뽑아낸다
+    data_json = request.get_json(silent=True) or {}
+    text = (
+        request.form.get("text")            # x-www-form-urlencoded, multipart
+        or data_json.get("text")            # application/json
+        or (request.data or b"").decode(errors="ignore")  # text/plain 대비
+    ).strip()
+
+    if not text:
+        return jsonify({"ok": False, "error": "empty"}), 400
+    if len(text) > 500:
+        return jsonify({"ok": False, "error": "too long"}), 400
+
+    c = Comment(post_id=post.id, author_id=current_user.id, text=text)
+    db.session.add(c)
+    db.session.commit()
+    return jsonify({"ok": True, "comment": serialize_comment(c)})
+
+@post_bp.post("/api/comment/<int:comment_id>/delete", endpoint="delete_comment_api")
+@login_required
+def delete_comment_api(comment_id):
+    c = Comment.query.get_or_404(comment_id)
+    if c.author_id != current_user.id:
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+    db.session.delete(c)
+    db.session.commit()
+    return jsonify({"ok": True, "comment_id": comment_id, "post_id": c.post_id})

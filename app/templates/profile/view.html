@@ -11,7 +11,7 @@
     <div>
       <h4 class="mb-1">@{{ profile_user.username }}</h4>
       <div class="text-muted">{{ profile_user.email }}</div>
-      <div class="small text-muted">가입일: {{ profile_user.created_at.strftime('%Y-%m-%d') }}</div>
+      <div class="small text-muted">가입일: {{ profile_user.created_at|fmt_kst('%Y-%m-%d') }}</div>
     </div>
   </div>
 </div>

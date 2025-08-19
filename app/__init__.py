@@ -6,6 +6,9 @@ from .routes.profile import profile_bp
 from .routes.post import post_bp
 from dotenv import load_dotenv
 
+from datetime import timezone
+from zoneinfo import ZoneInfo
+
 load_dotenv()  # .env 지원 (없어도 동작)
 
 def create_app():
@@ -28,6 +31,19 @@ def create_app():
     app.register_blueprint(profile_bp)
     app.register_blueprint(post_bp)
 
+    # KST 시간대 필터 등록
+    KST = ZoneInfo("Asia/Seoul")
+
+    def fmt_kst(value, fmt="%Y-%m-%d %H:%M"):
+        if value is None:
+            return ""
+        # DB의 naive UTC를 명시적으로 UTC로 간주
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(KST).strftime(fmt)
+
+    app.jinja_env.filters["fmt_kst"] = fmt_kst
+
     # 기본 페이지
     @app.route("/")
     def index():
@@ -37,10 +53,6 @@ def create_app():
     with app.app_context():
         os.makedirs(os.path.join(app.root_path, app.config["UPLOAD_DIR"]), exist_ok=True)
         db.create_all()
-        
-    # DB 생성
-    with app.app_context():
-        db.create_all()
-
+      
     return app
 
