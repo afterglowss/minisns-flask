@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 from PIL import Image, ImageOps
 from app.models.user import User
 from app.extensions import db
+from app.models.post import Post
 
 profile_bp = Blueprint("profile", __name__, template_folder="../templates/profile")
 
@@ -25,7 +26,21 @@ def view(username):
     user = User.query.filter_by(username=username).first()
     if not user:
         abort(404, description="User not found")
-    return render_template("profile/view.html", profile_user=user)
+
+    # 최근 게시글 10개 (최신순)
+    recent_posts = (
+        Post.query
+            .filter_by(author_id=user.id)
+            .order_by(Post.created_at.desc())
+            .limit(10)
+            .all()
+    )
+
+    return render_template(
+        "profile/view.html",
+        profile_user=user,
+        recent_posts=recent_posts
+    )
 
 @profile_bp.post("/me/avatar", endpoint="upload_avatar")
 @login_required
